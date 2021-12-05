@@ -2,16 +2,8 @@
 - hosts: localhost
   connection: local
   become: True
-  vars:
-    php_version: "7.4"
-    __php_conf_paths: 
-        - "/etc/php/{{ php_version }}/fpm"
-        - "/etc/php/{{ php_version }}/apache2"
-        - "/etc/php/{{ php_version }}/cli"
-    __php_extension_conf_paths:
-        - "/etc/php/{{ php_version }}/fpm/conf.d"
-        - "/etc/php/{{ php_version }}/apache2/conf.d"
-        - "/etc/php/{{ php_version }}/cli/conf.d"
+  vars_files:
+  - vars/default.yaml
 
   tasks:
   - name: Install Apache
