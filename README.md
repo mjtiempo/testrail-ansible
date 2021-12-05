@@ -16,3 +16,8 @@ sudo apt-get install ansible
 ```bash
 ansible-playbook local.yaml -K
 ```
+
+## Notes #
+To use for remote deployment do the following: 
+- delete  `connection: local` in `local.yaml`
+- edit the `hosts` file to add your remote server
