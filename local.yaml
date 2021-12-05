@@ -1,6 +1,5 @@
 
-- hosts: localhost
-  connection: local
+- hosts: all
   become: True
   vars_files:
   - vars/default.yaml
@@ -38,6 +37,7 @@
     copy: 
       src: "/tmp/ioncube/ioncube_loader_lin_{{ php_version }}.so"
       dest: "/usr/lib/php/{{ php_version }}/"
+      remote_src: yes
       force: no
 
   - name: Install ioncube_loader ini to apache
@@ -52,6 +52,54 @@
       dest: /etc/php/{{php_version}}/cli/conf.d/00-ioncube.ini
     notify: Reload Apache
     tags: ion
+
+#Testrail Database Configuration
+  - name: Create Testrail Database
+    mysql_db:
+      name: "{{ testrail_db_name }}"
+      state: present
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+    tags: db
+
+  - name: Create Testrail DB user and with DB access
+    mysql_user:
+      name: "{{ testrail_db_user }}"
+      password: "{{ testrail_db_password }}"
+      priv: '{{ testrail_db_name }}.*:ALL'
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+      update_password: on_create
+    no_log: true
+    tags: db
+
+#Download and Install Testrail
+  - name: Install Unzip
+    apt: name=unzip
+    tags: testrail
+
+  - name: Download Testrail Installer
+    get_url:
+      url: https://secure.gurock.com/downloads/testrail/testrail-latest-ion72.zip
+      dest: /tmp
+    register: testrail_installer
+    tags: testrail
+
+  - name: Extract Testrail Installer
+    unarchive:
+      src: "{{ testrail_installer.dest }}"
+      dest: "{{ testrail_install_folder }}"
+      copy: no
+      owner: "{{ testrail_folder_user }}"
+      group: "{{ testrail_folder_group }}"
+    tags: testrail
+
+  - name: Create Additional Testrail Directories
+    file:
+      path: "{{ testrail_install_folder }}/testrail/{{item}}"
+      state: directory
+      owner: "{{ testrail_folder_user }}"
+      group: "{{ testrail_folder_group }}"
+    loop: ['attachment', 'report', 'audit', 'logs']
+    tags: testrail
 
   handlers:
   - name: Reload Apache
