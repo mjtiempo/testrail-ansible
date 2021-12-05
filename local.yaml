@@ -1,0 +1,68 @@
+
+- hosts: localhost
+  connection: local
+  become: True
+  vars:
+    php_version: "7.4"
+    __php_conf_paths: 
+        - "/etc/php/{{ php_version }}/fpm"
+        - "/etc/php/{{ php_version }}/apache2"
+        - "/etc/php/{{ php_version }}/cli"
+    __php_extension_conf_paths:
+        - "/etc/php/{{ php_version }}/fpm/conf.d"
+        - "/etc/php/{{ php_version }}/apache2/conf.d"
+        - "/etc/php/{{ php_version }}/cli/conf.d"
+
+  tasks:
+  - name: Install Apache
+    apt: name={{ item }} update_cache=yes state=latest force_apt_get=yes
+    loop: ['apache2']
+
+  - name: Install MySQL Server
+    apt: name={{ item }} update_cache=yes state=latest
+    loop: ['mysql-server', 'python3-pymysql']
+
+  - name: Install PHP {{ php_version }}
+    apt: php{{ php_version }}
+
+  - name: Install PHP Extensions
+    apt: name={{ item }} update_cache=yes state=latest
+    loop: ['libapache2-mod-php{{ php_version }}', 'php{{ php_version }}-mysql', 'php{{ php_version }}-curl', 'php{{ php_version }}-json', 'php{{ php_version }}-mbstring', 'php{{ php_version }}-xml', 'php{{ php_version }}-zip']
+
+  
+  - name: Download ioncube_loader
+    get_url:
+      url: https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz
+      dest: /tmp
+    register: ioncube_loader
+
+  - name: Extracting ioncube_loader
+    unarchive:
+      src: "{{ ioncube_loader.dest }}"
+      dest: /tmp
+      copy: no
+
+  - name: Copy ioncube_loader to php_extensions dir
+    copy: 
+      src: "/tmp/ioncube/ioncube_loader_lin_{{ php_version }}.so"
+      dest: "/usr/lib/php/{{ php_version }}/"
+      force: no
+
+  - name: Install ioncube_loader ini to apache
+    template:
+      src: files/ioncube.j2
+      dest: /etc/php/{{php_version}}/apache2/conf.d/00-ioncube.ini
+    tags: ion
+
+  - name: Install ioncube_loader ini to cli
+    template:
+      src: files/ioncube.j2
+      dest: /etc/php/{{php_version}}/cli/conf.d/00-ioncube.ini
+    notify: Reload Apache
+    tags: ion
+
+  handlers:
+  - name: Reload Apache
+    service:
+      name: apache2
+      state: reloaded
