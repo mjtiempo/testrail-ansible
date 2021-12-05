@@ -1,5 +1,8 @@
 ---
 php_version: "7.4"
-mysql_root_password: "root"
+testrail_db_name: "testrail"
 testrail_db_user: "testrail"
 testrail_db_password: "testrail"
+testrail_install_folder: "/var/www/html"
+testrail_folder_user: "www-data"
+testrail_folder_group: "www-data"
